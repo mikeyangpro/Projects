@@ -1,0 +1,60 @@
+---
+title: "Pattern Recognition"
+author: "Mike Yang"
+date: 2017-06-21T21:13:14-05:00
+categories: ["R"]
+tags: ["R Markdown", "plot", "regression"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+```
+
+# R Markdown
+
+Wus up.
+
+```{r SPY, message=FALSE, warning=FALSE}
+rm(list=ls())
+library(quantmod)
+library(magrittr)
+library('dygraphs')
+#single equity here. could expand to a list of tickers
+eqty = '^GSPC'
+#start date/end date, will update end date to hist dates for backtesting
+sdate = '2010-01-01'; edate=Sys.Date()
+#Adj Daily Close Price
+data =  getSymbols(eqty,from=sdate,to=edate,auto.assign = F)
+data = data[,-5]
+#change names from SPY.Open to Open
+names(data)=gsub(paste(eqty,'\\.',sep=''),'',names(data))
+#daily log return based on Adj Close
+ret = Ad(data)%>%log%>%diff%>%na.omit
+#not ploting volumes at the moment
+dygraph(data[,1:4])%>%dyCandlestick(compress=T)%>%dyRangeSelector()
+#look back period, look forward period
+lb=20;lf=5
+d = length(ret)-lb-lf
+cret_now = cumsum(tail(ret,lb))
+cret_hist = matrix(NA,d,lb+lf)
+for (i in 1:d){
+  cret_hist[i,] = cumsum(ret[i:(i+lb+lf-1)])
+}
+corr = apply(cret_hist[,1:(lb)],1,cor,cret_now)
+matchs = order(corr,decreasing =T)[1:5]
+mychartTheme <- chart_theme()
+mychartTheme$rylab = FALSE
+par(mfrow=c(3,2))
+chart_Series(tail(data,lb),name='',theme =  mychartTheme)
+j=matchs[1]
+data[j:(j+lb+lf),]%>%chart_Series(name=round(corr[j],3),theme =  mychartTheme)
+j=matchs[2]
+data[j:(j+lb+lf),]%>%chart_Series(name=round(corr[j],3),theme =  mychartTheme)
+j=matchs[3]
+data[j:(j+lb+lf),]%>%chart_Series(name=round(corr[j],3),theme =  mychartTheme)
+j=matchs[4]
+data[j:(j+lb+lf),]%>%chart_Series(name=round(corr[j],3),theme =  mychartTheme)
+j=matchs[5]
+data[j:(j+lb+lf),]%>%chart_Series(name=round(corr[j],3),theme =  mychartTheme)
+par(mfrow=c(1,1))
+```

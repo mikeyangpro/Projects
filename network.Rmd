@@ -1,0 +1,111 @@
+---
+title: "Undirected Network Vis, FX and ETF"
+author: "Mike Yang"
+date: 2017-06-23T21:13:14-05:00
+categories: ["R"]
+tags: ["R Markdown", "plot", "regression"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+qdl= scan('c:/Users/Sida.Yang/Documents/R/APIKey.txt',what="character", sep=NULL)
+```
+
+#Curncy Corr Network
+
+```{r SPY, message=FALSE, warning=FALSE}
+
+# Data Collection
+library(dplyr)
+library(Quandl)
+library(mgm)
+library(igraph)
+library(visNetwork)
+library(corrr)
+curns = c('GBP','JPY','EUR','MXN','INR','CNY','CAD','AUD','CHF')
+
+# qdl = 'your Quandl API KEY here, its free to register on quandl.com'
+fxdat = Quandl(code=paste('CUR/',curns,sep=''),start_date=as.Date('2016-01-01'),api_key=qdl,type='xts')
+names(fxdat)=curns
+tail(round(fxdat,3))
+ret = fxdat%>%log%>%diff%>%na.omit
+# ret%>%correlate%>%fashion()
+ret%>%correlate%>%shave%>%rplot(print_cor=T)
+
+
+cormat=cor(ret)
+diag(cormat) = 0
+ig = graph.adjacency(cormat, weighted=TRUE,mode='lower')
+ig = delete.edges(ig, E(ig)[ weight < 0.4])
+# plot(ig,edge.label = round(E(ig)$weight,2),vertex.size=setNames(25,'a'))
+# Interactive Plot
+
+vg = toVisNetworkData(ig)
+nodes = vg$nodes
+nodes$shape='circle'
+edges = vg$edges
+edges$label = round(edges$weight,2)
+visNetwork(nodes,edges,physics=T,idToLabel=F)
+mgmmod = mgm(ret,type=rep('g',ncol(ret)),lev=rep(1,ncol(ret)))
+
+##  Note that signs of edge weights (if defined) are stored in fitobject$signs. See ?mgm for more info.
+ig=graph.adjacency(mgmmod$wadj,mode='lower',weighted=T)
+ig=delete.edges(ig, E(ig)[ weight <= 0.11])
+# plot(ig)
+vg=toVisNetworkData(ig)
+nodes=vg$nodes
+nodes$label = names(ret)
+nodes$shape='circle'
+edges=vg$edges
+edges$label = round(edges$weight,2)
+visNetwork(nodes,edges)
+#etf data collection code from http://www.business-science.io/financial-analysis/2017/02/02/Recreating-RViews-Reproducible-Finance-Post.html
+library(tidyquant)
+ticker <- c("XLY", "XLP", "XLE", "XLF", "XLV",   
+            "XLI", "XLB", "XLK", "XLU", "SPY") 
+sector <- c("XLY", "XLP", "XLE", "XLF", "XLV",   
+            "XLI", "XLB", "XLK", "XLU", "SPY") 
+etf_ticker_sector <- tibble(ticker, sector)
+etf_weekly_returns <- function(ticker) {
+
+    # Download prices using getSybmols    
+    symbols <- getSymbols(ticker, auto.assign = TRUE, warnings = FALSE)
+    # Take just the Closing prices.
+    etf_prices <- do.call(merge, lapply(symbols, function(x) Ad(get(x))))
+    # Use the periodReturn() function to get log weekly returns.    
+    etf_returns <- do.call(merge, lapply(etf_prices, 
+                                         function(x) periodReturn(x,period = 'weekly',type ='log')))
+    #Change the column names to the sector names from our dataframe above.
+    colnames(etf_returns) <- etf_ticker_sector$sector
+        
+    return(etf_returns)
+}
+etf_returns_rviews <- etf_weekly_returns(etf_ticker_sector$ticker)
+ret=etf_returns_rviews
+cormat=cor(ret)
+diag(cormat) = 0
+graph = graph.adjacency(cormat, weighted=TRUE,mode='lower')
+graph = delete.edges(graph, E(graph)[ weight < 0.65])
+# plot(graph,edge.label = round(E(graph)$weight,2),vertex.size=setNames(25,'a'))
+# Interactive Plot
+vg = toVisNetworkData(graph)
+nodes = vg$nodes
+nodes$size = 25
+nodes$shape='circle'
+edges = vg$edges
+edges$label = round(edges$weight,2)
+visNetwork(nodes,edges,physics=T,idToLabel=F)
+
+mgmmod = mgm(ret,type=rep('g',ncol(ret)),lev=rep(1,ncol(ret)))
+##  Note that signs of edge weights (if defined) are stored in fitobject$signs. See ?mgm for more info.
+ig=graph.adjacency(mgmmod$wadj,mode='lower',weighted=T)
+# ig=delete.edges(ig, E(ig)[ weight <= 0.11])
+# plot(ig)
+vg=toVisNetworkData(ig)
+nodes=vg$nodes
+nodes$label = names(ret)
+nodes$shape='circle'
+edges=vg$edges
+edges$label = round(edges$weight,2)
+visNetwork(nodes,edges)
+```

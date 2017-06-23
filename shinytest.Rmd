@@ -1,0 +1,35 @@
+---
+title: "Interactive Test"
+author: "Mike"
+date: "June 22, 2017"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This R Markdown document is made interactive using Shiny. Unlike the more traditional workflow of creating static reports, you can now create documents that allow your readers to change the assumptions underlying your analysis and see the results immediately. 
+
+```{r eruptions, echo=FALSE}
+inputPanel(
+  actionButton("go", "Go"),
+  numericInput("n", "n", 50),
+  dateInput('date',
+    label = 'Date input: yyyy-mm-dd',
+    value = Sys.Date()
+  ),
+  plotOutput("plot")
+)
+
+renderPlot({
+  randomVals <- eventReactive(input$go, {
+    runif(input$n)
+  })
+
+  output$plot <- renderPlot({
+    hist(randomVals(),main=input$date)
+  })
+})
+```

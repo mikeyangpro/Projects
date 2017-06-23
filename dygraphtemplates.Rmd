@@ -1,0 +1,65 @@
+---
+title: "dygraph template"
+author: 'Mike Yang'
+date: 2017-06-21T21:13:14-05:00
+categories: ["R"]
+tags: ["R Markdown", "plot", "regression"]
+---
+```{r setup, message=F,warning=F}
+library(flexdashboard)
+library(dygraphs)
+```
+
+### Chart 1
+    
+```{r, message=F,warning=F}
+dygraph(nhtemp, main = "New Haven Temperatures") %>% 
+  dySeries(label = "Temp (F)", color = "black") %>%
+  dyShading(from = "1920-1-1", to = "1930-1-1", color = "#FFE6E6") %>%
+  dyShading(from = "1940-1-1", to = "1950-1-1", color = "#CCEBD6")
+
+```
+    
+### Chart 2
+
+```{r, message=F,warning=F}
+library(quantmod)
+data = getSymbols("MSFT", from = "2014-06-01", auto.assign=F)
+ret = ROC(data[,6])
+mn = mean(ret, na.rm = TRUE)
+std = sd(ret, na.rm = TRUE)
+dygraph(ret, main = "Microsoft Share Price") %>% 
+  dySeries("MSFT.Adjusted", label = "MSFT") %>%
+  dyShading(from = mn - std, to = mn + std, axis = "y")
+```
+
+### Chart 3
+
+```{r, message=F,warning=F}
+dygraph(presidents, main = "Quarterly Presidential Approval Ratings") %>%
+  dyAxis("y", valueRange = c(0, 100)) %>%
+  dyEvent("1950-6-30", "Korea", labelLoc = "bottom") %>%
+  dyEvent("1965-2-09", "Vietnam", labelLoc = "bottom")
+```
+### Chart 4
+
+```{r,message=F,warning=F}
+hw <- HoltWinters(ldeaths)
+p <- predict(hw, n.ahead = 36, prediction.interval = TRUE)
+all <- cbind(ldeaths, p)
+
+dygraph(all, "Deaths from Lung Disease (UK)") %>%
+  dySeries("ldeaths", label = "Actual") %>%
+  dySeries(c("p.lwr", "p.fit", "p.upr"), label = "Predicted")
+```
+
+### Chart 5
+
+```{r,message=F,warning=F}
+library(quantmod)
+getSymbols(c("MSFT", "HPQ"), from = "2014-06-01", auto.assign=TRUE)
+stocks <- cbind(MSFT[,2:4], HPQ[,2:4])
+dygraph(stocks, main = "Microsoft and HP Share Prices") %>% 
+  dySeries(c("MSFT.Low", "MSFT.Close", "MSFT.High"), label = "MSFT") %>%
+  dySeries(c("HPQ.Low", "HPQ.Close", "HPQ.High"), label = "HPQ")
+```

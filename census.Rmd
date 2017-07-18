@@ -1,0 +1,85 @@
+---
+title: "Interactive spacial data with Tidycensus and Leaflet"
+author: "Mike Yang"
+date: "July 18, 2017"
+output: html_document
+---
+
+```{r init, include=FALSE,warning=FALSE,message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+library(tidycensus)
+yourAPIhere = scan('c:/Users/Sida.Yang/Documents/R/CensusAPI.txt',what="character", sep=NULL)
+```
+
+## Title
+Text
+
+```{r setup, warning=FALSE,message=FALSE}
+# https://juliasilge.com/blog/using-tidycensus/
+
+library(tidycensus)
+library(leaflet)
+library(stringr)
+library(sf)
+census_api_key(yourAPIhere) #Need to register API https://www.census.gov/data/developers/
+
+rent = 'B25031_001'
+hval = 'B25077_001'
+ilb = 'C18120_002'
+ilbu = 'C18120_006'
+inc= 'B19013_001'
+age = 'B01002_001'
+
+#function to plot census data
+leafletcencus = function(censusdat,palette='viridis',title='',prefix='',suffix=''){
+  pal <- colorNumeric(palette = palette,domain = censusdat$estimate)
+  censusdat %>%
+  st_transform(crs = "+init=epsg:4326") %>% leaflet(width = "80%") %>%
+    addProviderTiles(provider = "CartoDB.Positron") %>%
+    addPolygons(popup = ~ paste(censusdat$estimate),stroke = FALSE, 
+                smoothFactor=0, fillOpacity=0.7,
+                color = ~ pal(estimate)) %>%
+    addLegend("bottomright",pal = pal,values = ~ estimate, title = title, 
+              labFormat = labelFormat(prefix=prefix,suffix=suffix),opacity = 1)
+}
+```
+
+
+```{r age, warning=FALSE,message=FALSE}
+SeattleAge = get_acs(geography = "tract",variables = age, state = "WA",
+        county = "King County",geometry = TRUE)%>%na.omit
+leafletcencus(SeattleAge,title='Age',palette='plasma')
+```
+
+You can zoom in and see the area with youngest median age is on the Univeristy District where Huksies reside. I wonder what's going on at the Redmond reservoir though, retirement homes?
+
+Next we can check out umemployment rate, which is population in the labor force while unemployed divided by population in the labor force. Notice the bright yellow spot there? Yeah that's University District again.
+
+```{r employ, warning=FALSE,message=FALSE}
+inlab = get_acs(geography = "tract",variables = ilb,state = "WA",
+                county = "King County",  geometry = TRUE)%>%na.omit
+inlabun = get_acs(geography = "tract",variables = ilbu,state = "WA",
+                county = "King County",  geometry = TRUE)%>%na.omit
+
+unrate = inlab
+unrate$estimate = inlabun$estimate/inlab$estimate * 100
+
+leafletcencus(unrate,title='Unemployment Rate',suffix='%')
+```
+
+Let's take a quick look at Median House Value in San Diego so I can plan my retirement.
+
+```{r home, warning=FALSE,message=FALSE}
+SanDHouse = get_acs(geography = "tract",variables = hval, state = "CA",county = 'San Diego',
+                    geometry = TRUE)%>%na.omit
+leafletcencus(SanDHouse,palette='plasma',title='Median House Value',prefix='$')
+```
+
+Now, finally, let's take a look at income level in New York.
+
+```{r income, warning=FALSE,message=FALSE}
+NYIncome = get_acs(geography = "tract",variables = inc, state = 'NY', county='New York',
+                    geometry = TRUE)%>%na.omit
+leafletcencus(NYIncome,palette = 'plasma',title='Median House Income',prefix='$')
+```

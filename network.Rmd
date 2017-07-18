@@ -8,13 +8,12 @@ tags: ["R Markdown", "plot", "regression"]
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE)
-qdl= scan('c:/Users/Sida.Yang/Documents/R/APIKey.txt',what="character", sep=NULL)
+qdl= scan('c:/Users/Sida.Yang/Documents/R/QuandlAPI.txt',what="character", sep=NULL)
 ```
 
 #Curncy Corr Network
 
 ```{r SPY, message=FALSE, warning=FALSE}
-
 # Data Collection
 library(dplyr)
 library(Quandl)
@@ -29,9 +28,9 @@ fxdat = Quandl(code=paste('CUR/',curns,sep=''),start_date=as.Date('2016-01-01'),
 names(fxdat)=curns
 tail(round(fxdat,3))
 ret = fxdat%>%log%>%diff%>%na.omit
-# ret%>%correlate%>%fashion()
-ret%>%correlate%>%shave%>%rplot(print_cor=T)
 
+ret%>%correlate%>%fashion()
+ret%>%correlate%>%shave%>%rplot(print_cor=T)
 
 cormat=cor(ret)
 diag(cormat) = 0
